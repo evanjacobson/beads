@@ -124,6 +124,10 @@ func runPour(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stderr, "Error loading proto %s: %v\n", protoID, err)
 			os.Exit(1)
 		}
+		if protoIssue == nil {
+			fmt.Fprintf(os.Stderr, "Error: proto %s not found\n", protoID)
+			os.Exit(1)
+		}
 		if !isProto(protoIssue) {
 			fmt.Fprintf(os.Stderr, "Error: %s is not a proto (missing '%s' label)\n", protoID, MoleculeLabel)
 			os.Exit(1)
@@ -155,6 +159,10 @@ func runPour(cmd *cobra.Command, args []string) {
 		attachIssue, err := store.GetIssue(ctx, attachID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error loading attachment %s: %v\n", attachID, err)
+			os.Exit(1)
+		}
+		if attachIssue == nil {
+			fmt.Fprintf(os.Stderr, "Error: attachment %s not found\n", attachID)
 			os.Exit(1)
 		}
 		if !isProto(attachIssue) {

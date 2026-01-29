@@ -1016,6 +1016,9 @@ Examples:
 		if err != nil {
 			FatalErrorRespectJSON("failed to get epic: %v", err)
 		}
+		if epic == nil {
+			FatalErrorRespectJSON("epic '%s' not found", epicID)
+		}
 
 		analysis, err := analyzeEpicForSwarm(ctx, store, epic)
 		if err != nil {

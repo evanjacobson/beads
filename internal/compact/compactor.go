@@ -90,6 +90,9 @@ func (c *Compactor) CompactTier1(ctx context.Context, issueID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch issue: %w", err)
 	}
+	if issue == nil {
+		return fmt.Errorf("issue %s not found", issueID)
+	}
 
 	// Calculate original size
 	originalSize := len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
@@ -163,6 +166,10 @@ func (c *Compactor) CompactTier1Batch(ctx context.Context, issueIDs []string) ([
 				results[idx] = BatchResult{IssueID: issueID, Err: err}
 				return
 			}
+			if issue == nil {
+				results[idx] = BatchResult{IssueID: issueID, Err: fmt.Errorf("issue %s not found", issueID)}
+				return
+			}
 
 			originalSize := len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
 
@@ -198,6 +205,9 @@ func (c *Compactor) CompactTier1Single(ctx context.Context, issueID string) (*Ba
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch issue: %w", err)
 	}
+	if issue == nil {
+		return nil, fmt.Errorf("issue %s not found", issueID)
+	}
 
 	originalSize := len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
 
@@ -225,6 +235,9 @@ func (c *Compactor) CompactTier2(ctx context.Context, issueID string) error {
 	issue, err := c.store.GetIssue(ctx, issueID)
 	if err != nil {
 		return fmt.Errorf("failed to get issue: %w", err)
+	}
+	if issue == nil {
+		return fmt.Errorf("issue %s not found", issueID)
 	}
 
 	// Calculate original size

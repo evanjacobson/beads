@@ -281,6 +281,10 @@ func runCompactSingle(ctx context.Context, compactor *compact.Compactor, store *
 		fmt.Fprintf(os.Stderr, "Error: failed to get issue: %v\n", err)
 		os.Exit(1)
 	}
+	if issue == nil {
+		fmt.Fprintf(os.Stderr, "Error: issue %s not found\n", issueID)
+		os.Exit(1)
+	}
 
 	originalSize := len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
 
@@ -320,6 +324,10 @@ func runCompactSingle(ctx context.Context, compactor *compact.Compactor, store *
 	issue, err = store.GetIssue(ctx, issueID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to get updated issue: %v\n", err)
+		os.Exit(1)
+	}
+	if issue == nil {
+		fmt.Fprintf(os.Stderr, "Error: issue %s not found after compaction\n", issueID)
 		os.Exit(1)
 	}
 
@@ -401,7 +409,7 @@ func runCompactAll(ctx context.Context, compactor *compact.Compactor, store *sql
 		totalSize := 0
 		for _, id := range candidates {
 			issue, err := store.GetIssue(ctx, id)
-			if err != nil {
+			if err != nil || issue == nil {
 				continue
 			}
 			totalSize += len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
@@ -571,6 +579,10 @@ func runCompactAnalyze(ctx context.Context, store *sqlite.SQLiteStorage) {
 			fmt.Fprintf(os.Stderr, "Error: failed to get issue: %v\n", err)
 			os.Exit(1)
 		}
+		if issue == nil {
+			fmt.Fprintf(os.Stderr, "Error: issue %s not found\n", compactID)
+			os.Exit(1)
+		}
 
 		sizeBytes := len(issue.Description) + len(issue.Design) + len(issue.Notes) + len(issue.AcceptanceCriteria)
 		ageDays := 0
@@ -680,6 +692,10 @@ func runCompactApply(ctx context.Context, store *sqlite.SQLiteStorage) {
 	issue, err := store.GetIssue(ctx, compactID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to get issue: %v\n", err)
+		os.Exit(1)
+	}
+	if issue == nil {
+		fmt.Fprintf(os.Stderr, "Error: issue %s not found\n", compactID)
 		os.Exit(1)
 	}
 

@@ -92,6 +92,10 @@ func burnSingleMolecule(ctx context.Context, moleculeID string, dryRun, force bo
 		fmt.Fprintf(os.Stderr, "Error loading molecule: %v\n", err)
 		os.Exit(1)
 	}
+	if rootIssue == nil {
+		fmt.Fprintf(os.Stderr, "Error: molecule %s not found\n", resolvedID)
+		os.Exit(1)
+	}
 
 	// Branch based on molecule phase
 	if rootIssue.Ephemeral {
@@ -124,6 +128,13 @@ func burnMultipleMolecules(ctx context.Context, moleculeIDs []string, dryRun, fo
 		if err != nil {
 			if !jsonOutput {
 				fmt.Fprintf(os.Stderr, "Warning: failed to load %s: %v\n", resolvedID, err)
+			}
+			failedResolve = append(failedResolve, moleculeID)
+			continue
+		}
+		if issue == nil {
+			if !jsonOutput {
+				fmt.Fprintf(os.Stderr, "Warning: molecule %s not found\n", resolvedID)
 			}
 			failedResolve = append(failedResolve, moleculeID)
 			continue
