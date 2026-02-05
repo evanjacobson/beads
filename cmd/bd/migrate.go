@@ -43,7 +43,7 @@ Dolt server mode (use with --to-dolt):
   --server-host      Server host (default: 127.0.0.1)
   --server-port      Server port (default: 3307)
   --server-user      MySQL user (default: root)
-  --server-database  Database name (default: beads)
+  --server-database  Database name (default: issue prefix, or "beads" if no prefix)
   --update-config    Also write dolt.mode to config.yaml (for team-wide defaults)
 
   Server mode connects to an external dolt sql-server process. Use this for
@@ -1140,7 +1140,7 @@ func init() {
 	migrateCmd.Flags().String("server-host", "", "Dolt server host (default: 127.0.0.1)")
 	migrateCmd.Flags().Int("server-port", 0, "Dolt server port (default: 3307)")
 	migrateCmd.Flags().String("server-user", "", "Dolt server MySQL user (default: root)")
-	migrateCmd.Flags().String("server-database", "", "Dolt server database name (default: beads)")
+	migrateCmd.Flags().String("server-database", "", "Dolt server database name (default: issue prefix)")
 	migrateCmd.Flags().Bool("update-config", false, "Also update config.yaml with server settings (for team-wide defaults)")
 
 	migrateCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output migration statistics in JSON format")

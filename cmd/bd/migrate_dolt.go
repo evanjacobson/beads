@@ -196,12 +196,20 @@ func handleToDoltMigration(cmd *cobra.Command, dryRun bool, autoYes bool) {
 	}
 	if db, _ := cmd.Flags().GetString("server-database"); db != "" {
 		cfg.DoltDatabase = db
+		if !jsonOutput && serverMode {
+			fmt.Printf("  Using database '%s' (from --server-database)\n", db)
+		}
 	} else if serverMode && data.prefix != "" {
 		// Auto-derive database name from issue prefix to avoid mixing issues
 		// from different repos into the same "beads" database
 		cfg.DoltDatabase = data.prefix
 		if !jsonOutput {
-			fmt.Printf("  Using issue prefix '%s' as database name\n", data.prefix)
+			fmt.Printf("  Using database '%s' (from issue prefix)\n", data.prefix)
+		}
+	} else if serverMode {
+		// No prefix available, will use default "beads"
+		if !jsonOutput {
+			fmt.Printf("  Using database '%s' (default - no issue prefix found)\n", configfile.DefaultDoltDatabase)
 		}
 	}
 
@@ -216,9 +224,17 @@ func handleToDoltMigration(cmd *cobra.Command, dryRun bool, autoYes bool) {
 	updateConfig, _ := cmd.Flags().GetBool("update-config")
 	if updateConfig && serverMode {
 		if err := config.SetYamlConfig("dolt.mode", configfile.DoltModeServer); err != nil {
-			printWarning(fmt.Sprintf("failed to update config.yaml: %v", err))
+			printWarning(fmt.Sprintf("failed to update config.yaml dolt.mode: %v", err))
 		} else {
-			printSuccess("Updated config.yaml with dolt.mode=server (team default)")
+			printSuccess("Updated config.yaml with dolt.mode=server")
+		}
+		// Also write database name if set
+		if cfg.DoltDatabase != "" {
+			if err := config.SetYamlConfig("dolt.database", cfg.DoltDatabase); err != nil {
+				printWarning(fmt.Sprintf("failed to update config.yaml dolt.database: %v", err))
+			} else {
+				printSuccess(fmt.Sprintf("Updated config.yaml with dolt.database=%s", cfg.DoltDatabase))
+			}
 		}
 	}
 

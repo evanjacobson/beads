@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/steveyegge/beads/internal/config"
 )
 
 const ConfigFileName = "metadata.json"
@@ -293,13 +295,17 @@ func (c *Config) GetDoltServerUser() string {
 }
 
 // GetDoltDatabase returns the Dolt SQL database name.
-// Checks BEADS_DOLT_SERVER_DATABASE env var first, then config, then default.
+// Priority: env var > metadata.json > config.yaml > default.
 func (c *Config) GetDoltDatabase() string {
 	if d := os.Getenv("BEADS_DOLT_SERVER_DATABASE"); d != "" {
 		return d
 	}
 	if c.DoltDatabase != "" {
 		return c.DoltDatabase
+	}
+	// Check config.yaml (for team-wide defaults set via --update-config)
+	if d := config.GetString("dolt.database"); d != "" {
+		return d
 	}
 	return DefaultDoltDatabase
 }
