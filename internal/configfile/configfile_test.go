@@ -532,3 +532,65 @@ func TestEnvVarOverrides(t *testing.T) {
 		}
 	})
 }
+
+// TestDoltDatabaseRoundtrip tests that DoltDatabase config survives save/load
+func TestDoltDatabaseRoundtrip(t *testing.T) {
+	tmpDir := t.TempDir()
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0750); err != nil {
+		t.Fatalf("failed to create .beads directory: %v", err)
+	}
+
+	cfg := &Config{
+		Database:     "dolt",
+		Backend:      BackendDolt,
+		DoltMode:     DoltModeServer,
+		DoltDatabase: "myproject",
+	}
+
+	if err := cfg.Save(beadsDir); err != nil {
+		t.Fatalf("Save() failed: %v", err)
+	}
+
+	loaded, err := Load(beadsDir)
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if loaded.DoltDatabase != "myproject" {
+		t.Errorf("DoltDatabase = %q, want %q", loaded.DoltDatabase, "myproject")
+	}
+	if loaded.GetDoltDatabase() != "myproject" {
+		t.Errorf("GetDoltDatabase() = %q, want %q", loaded.GetDoltDatabase(), "myproject")
+	}
+}
+
+// TestGetDoltDatabasePriority tests the priority chain for GetDoltDatabase
+func TestGetDoltDatabasePriority(t *testing.T) {
+	// Priority: env var > metadata.json > config.yaml > default
+
+	t.Run("env var has highest priority", func(t *testing.T) {
+		t.Setenv("BEADS_DOLT_SERVER_DATABASE", "from_env")
+		cfg := &Config{DoltDatabase: "from_metadata"}
+		got := cfg.GetDoltDatabase()
+		if got != "from_env" {
+			t.Errorf("GetDoltDatabase() = %q, want from_env", got)
+		}
+	})
+
+	t.Run("metadata.json overrides default", func(t *testing.T) {
+		cfg := &Config{DoltDatabase: "from_metadata"}
+		got := cfg.GetDoltDatabase()
+		if got != "from_metadata" {
+			t.Errorf("GetDoltDatabase() = %q, want from_metadata", got)
+		}
+	})
+
+	t.Run("falls back to default when nothing set", func(t *testing.T) {
+		cfg := &Config{}
+		got := cfg.GetDoltDatabase()
+		if got != DefaultDoltDatabase {
+			t.Errorf("GetDoltDatabase() = %q, want %q", got, DefaultDoltDatabase)
+		}
+	})
+}

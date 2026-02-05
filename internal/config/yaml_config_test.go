@@ -49,6 +49,13 @@ func TestIsYamlOnlyKey(t *testing.T) {
 		{"custom.setting", false},
 		{"status.custom", false},
 		{"issue_prefix", false},
+
+		// Dolt keys are NOT yaml-only - they belong in metadata.json
+		// These are set via `bd migrate --to-dolt --server` flags
+		{"dolt.mode", false},
+		{"dolt.database", false},
+		{"dolt.host", false},
+		{"dolt.port", false},
 	}
 
 	for _, tt := range tests {
