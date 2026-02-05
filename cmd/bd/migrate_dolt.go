@@ -118,6 +118,8 @@ func handleToDoltMigration(cmd *cobra.Command, dryRun bool, autoYes bool) {
 			}
 			if db, _ := cmd.Flags().GetString("server-database"); db != "" {
 				fmt.Printf("  Database: %s\n", db)
+			} else if data.prefix != "" {
+				fmt.Printf("  Database: %s (from issue prefix)\n", data.prefix)
 			} else {
 				fmt.Printf("  Database: %s (default)\n", configfile.DefaultDoltDatabase)
 			}
@@ -194,6 +196,13 @@ func handleToDoltMigration(cmd *cobra.Command, dryRun bool, autoYes bool) {
 	}
 	if db, _ := cmd.Flags().GetString("server-database"); db != "" {
 		cfg.DoltDatabase = db
+	} else if serverMode && data.prefix != "" {
+		// Auto-derive database name from issue prefix to avoid mixing issues
+		// from different repos into the same "beads" database
+		cfg.DoltDatabase = data.prefix
+		if !jsonOutput {
+			fmt.Printf("  Using issue prefix '%s' as database name\n", data.prefix)
+		}
 	}
 
 	if err := cfg.Save(beadsDir); err != nil {
