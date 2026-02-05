@@ -5,11 +5,14 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 // handleToDoltMigration is a stub for non-cgo builds.
 // Dolt requires CGO, so this migration is not available.
-func handleToDoltMigration(dryRun bool, autoYes bool) {
+func handleToDoltMigration(_ *cobra.Command, dryRun bool, autoYes bool) {
+	_, _ = dryRun, autoYes // unused in stub
 	if jsonOutput {
 		outputJSON(map[string]interface{}{
 			"error":   "dolt_not_available",

@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/steveyegge/beads/internal/beads"
+	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/configfile"
 	"github.com/steveyegge/beads/internal/storage"
 	"github.com/steveyegge/beads/internal/storage/dolt"
@@ -38,7 +40,10 @@ type migrationData struct {
 // 3. Copies all config values
 // 4. Updates `metadata.json` to use Dolt
 // 5. Keeps JSONL export enabled by default
-func handleToDoltMigration(dryRun bool, autoYes bool) {
+//
+// Server mode flags (--server, --server-host, etc.) configure Dolt to connect
+// to an external dolt sql-server instead of using embedded mode.
+func handleToDoltMigration(cmd *cobra.Command, dryRun bool, autoYes bool) {
 	ctx := context.Background()
 
 	// Find .beads directory
@@ -91,6 +96,39 @@ func handleToDoltMigration(dryRun bool, autoYes bool) {
 	// Dry run mode
 	if dryRun {
 		printDryRun(sqlitePath, doltPath, data, true)
+		// Show server mode settings if specified
+		serverMode, _ := cmd.Flags().GetBool("server")
+		if serverMode && !jsonOutput {
+			fmt.Println("\nServer mode settings:")
+			fmt.Println("  Mode: server (connect to dolt sql-server)")
+			if host, _ := cmd.Flags().GetString("server-host"); host != "" {
+				fmt.Printf("  Host: %s\n", host)
+			} else {
+				fmt.Printf("  Host: %s (default)\n", configfile.DefaultDoltServerHost)
+			}
+			if port, _ := cmd.Flags().GetInt("server-port"); port != 0 {
+				fmt.Printf("  Port: %d\n", port)
+			} else {
+				fmt.Printf("  Port: %d (default)\n", configfile.DefaultDoltServerPort)
+			}
+			if user, _ := cmd.Flags().GetString("server-user"); user != "" {
+				fmt.Printf("  User: %s\n", user)
+			} else {
+				fmt.Printf("  User: %s (default)\n", configfile.DefaultDoltServerUser)
+			}
+			if db, _ := cmd.Flags().GetString("server-database"); db != "" {
+				fmt.Printf("  Database: %s\n", db)
+			} else {
+				fmt.Printf("  Database: %s (default)\n", configfile.DefaultDoltDatabase)
+			}
+			updateConfig, _ := cmd.Flags().GetBool("update-config")
+			if updateConfig {
+				fmt.Println("\n  Will also update config.yaml with dolt.mode=server (team default)")
+			} else {
+				fmt.Println("\n  Settings will be local only (metadata.json)")
+				fmt.Println("  Use --update-config to also set team default in config.yaml")
+			}
+		}
 		return
 	}
 
@@ -139,12 +177,41 @@ func handleToDoltMigration(dryRun bool, autoYes bool) {
 	// Update metadata.json
 	cfg.Backend = configfile.BackendDolt
 	cfg.Database = "dolt"
+
+	// Apply server mode flags if specified
+	serverMode, _ := cmd.Flags().GetBool("server")
+	if serverMode {
+		cfg.DoltMode = configfile.DoltModeServer
+	}
+	if host, _ := cmd.Flags().GetString("server-host"); host != "" {
+		cfg.DoltServerHost = host
+	}
+	if port, _ := cmd.Flags().GetInt("server-port"); port != 0 {
+		cfg.DoltServerPort = port
+	}
+	if user, _ := cmd.Flags().GetString("server-user"); user != "" {
+		cfg.DoltServerUser = user
+	}
+	if db, _ := cmd.Flags().GetString("server-database"); db != "" {
+		cfg.DoltDatabase = db
+	}
+
 	if err := cfg.Save(beadsDir); err != nil {
 		exitWithError("config_save_failed", err.Error(),
 			"data was imported but metadata.json was not updated - manually set backend to 'dolt'")
 	}
 
 	printSuccess("Updated metadata.json to use Dolt backend")
+
+	// Update config.yaml if --update-config is specified (for team-wide defaults)
+	updateConfig, _ := cmd.Flags().GetBool("update-config")
+	if updateConfig && serverMode {
+		if err := config.SetYamlConfig("dolt.mode", configfile.DoltModeServer); err != nil {
+			printWarning(fmt.Sprintf("failed to update config.yaml: %v", err))
+		} else {
+			printSuccess("Updated config.yaml with dolt.mode=server (team default)")
+		}
+	}
 
 	// Check if git hooks need updating for Dolt compatibility
 	if hooksNeedDoltUpdate(beadsDir) {

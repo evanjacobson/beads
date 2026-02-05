@@ -38,6 +38,22 @@ Backend migration flags:
   --to-dolt     Migrate from SQLite to Dolt backend
   --to-sqlite   Migrate from Dolt to SQLite backend (escape hatch)
 
+Dolt server mode (use with --to-dolt):
+  --server           Use server mode instead of embedded (requires dolt sql-server)
+  --server-host      Server host (default: 127.0.0.1)
+  --server-port      Server port (default: 3307)
+  --server-user      MySQL user (default: root)
+  --server-database  Database name (default: beads)
+  --update-config    Also write dolt.mode to config.yaml (for team-wide defaults)
+
+  Server mode connects to an external dolt sql-server process. Use this for
+  high-concurrency scenarios or when you need multiple processes accessing
+  the same database. Password can be set via BEADS_DOLT_PASSWORD env var.
+
+  Without --update-config, settings are local only (metadata.json, gitignored).
+  With --update-config, dolt.mode=server is written to config.yaml (tracked)
+  so all team members default to server mode.
+
 Subcommands:
   hash-ids    Migrate sequential IDs to hash-based IDs (legacy)
   issues      Move issues between repositories
@@ -70,7 +86,7 @@ Subcommands:
 		// Handle --to-dolt flag (SQLite to Dolt migration)
 		toDolt, _ := cmd.Flags().GetBool("to-dolt")
 		if toDolt {
-			handleToDoltMigration(dryRun, autoYes)
+			handleToDoltMigration(cmd, dryRun, autoYes)
 			return
 		}
 
@@ -1118,6 +1134,15 @@ func init() {
 	migrateCmd.Flags().Bool("inspect", false, "Show migration plan and database state for AI agent analysis")
 	migrateCmd.Flags().Bool("to-dolt", false, "Migrate from SQLite to Dolt backend")
 	migrateCmd.Flags().Bool("to-sqlite", false, "Migrate from Dolt to SQLite backend (escape hatch)")
+
+	// Dolt server mode flags (for --to-dolt migration)
+	migrateCmd.Flags().Bool("server", false, "Use Dolt server mode instead of embedded (requires running dolt sql-server)")
+	migrateCmd.Flags().String("server-host", "", "Dolt server host (default: 127.0.0.1)")
+	migrateCmd.Flags().Int("server-port", 0, "Dolt server port (default: 3307)")
+	migrateCmd.Flags().String("server-user", "", "Dolt server MySQL user (default: root)")
+	migrateCmd.Flags().String("server-database", "", "Dolt server database name (default: beads)")
+	migrateCmd.Flags().Bool("update-config", false, "Also update config.yaml with server settings (for team-wide defaults)")
+
 	migrateCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output migration statistics in JSON format")
 	rootCmd.AddCommand(migrateCmd)
 }
